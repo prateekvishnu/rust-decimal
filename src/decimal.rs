@@ -97,6 +97,10 @@ pub struct UnpackedDecimal {
 #[derive(Clone, Copy)]
 #[cfg_attr(feature = "diesel", derive(FromSqlRow, AsExpression), sql_type = "Numeric")]
 #[cfg_attr(feature = "c-repr", repr(C))]
+#[cfg_attr(
+    feature = "borsh",
+    derive(borsh::BorshDeserialize, borsh::BorshSerialize, borsh::BorshSchema)
+)]
 pub struct Decimal {
     // Bits 0-15: unused
     // Bits 16-23: Contains "e", a value between 0-28 that indicates the scale
@@ -156,25 +160,115 @@ pub enum RoundingStrategy {
 #[allow(dead_code)]
 impl Decimal {
     /// The smallest value that can be represented by this decimal type.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::MIN, dec!(-79_228_162_514_264_337_593_543_950_335));
+    /// ```
     pub const MIN: Decimal = MIN;
     /// The largest value that can be represented by this decimal type.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::MAX, dec!(79_228_162_514_264_337_593_543_950_335));
+    /// ```
     pub const MAX: Decimal = MAX;
     /// A constant representing 0.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::ZERO, dec!(0));
+    /// ```
     pub const ZERO: Decimal = ZERO;
     /// A constant representing 1.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::ONE, dec!(1));
+    /// ```
     pub const ONE: Decimal = ONE;
     /// A constant representing -1.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::NEGATIVE_ONE, dec!(-1));
+    /// ```
     pub const NEGATIVE_ONE: Decimal = NEGATIVE_ONE;
     /// A constant representing 2.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::TWO, dec!(2));
+    /// ```
     pub const TWO: Decimal = TWO;
     /// A constant representing 10.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::TEN, dec!(10));
+    /// ```
     pub const TEN: Decimal = TEN;
     /// A constant representing 100.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::ONE_HUNDRED, dec!(100));
+    /// ```
     pub const ONE_HUNDRED: Decimal = ONE_HUNDRED;
     /// A constant representing 1000.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::ONE_THOUSAND, dec!(1000));
+    /// ```
     pub const ONE_THOUSAND: Decimal = ONE_THOUSAND;
 
     /// A constant representing π as 3.1415926535897932384626433833
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::PI, dec!(3.1415926535897932384626433833));
+    /// ```
     #[cfg(feature = "maths")]
     pub const PI: Decimal = Decimal {
         flags: 1835008,
@@ -183,6 +277,15 @@ impl Decimal {
         hi: 1703060790,
     };
     /// A constant representing π/2 as 1.5707963267948966192313216916
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::HALF_PI, dec!(1.5707963267948966192313216916));
+    /// ```
     #[cfg(feature = "maths")]
     pub const HALF_PI: Decimal = Decimal {
         flags: 1835008,
@@ -191,6 +294,15 @@ impl Decimal {
         hi: 851530395,
     };
     /// A constant representing π/4 as 0.7853981633974483096156608458
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::QUARTER_PI, dec!(0.7853981633974483096156608458));
+    /// ```
     #[cfg(feature = "maths")]
     pub const QUARTER_PI: Decimal = Decimal {
         flags: 1835008,
@@ -199,6 +311,15 @@ impl Decimal {
         hi: 425765197,
     };
     /// A constant representing 2π as 6.2831853071795864769252867666
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::TWO_PI, dec!(6.2831853071795864769252867666));
+    /// ```
     #[cfg(feature = "maths")]
     pub const TWO_PI: Decimal = Decimal {
         flags: 1835008,
@@ -207,6 +328,15 @@ impl Decimal {
         hi: 3406121580,
     };
     /// A constant representing Euler's number (e) as 2.7182818284590452353602874714
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::E, dec!(2.7182818284590452353602874714));
+    /// ```
     #[cfg(feature = "maths")]
     pub const E: Decimal = Decimal {
         flags: 1835008,
@@ -215,6 +345,15 @@ impl Decimal {
         hi: 1473583531,
     };
     /// A constant representing the inverse of Euler's number (1/e) as 0.3678794411714423215955237702
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    /// ```
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// assert_eq!(Decimal::E_INVERSE, dec!(0.3678794411714423215955237702));
+    /// ```
     #[cfg(feature = "maths")]
     pub const E_INVERSE: Decimal = Decimal {
         flags: 1835008,
@@ -237,8 +376,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let pi = Decimal::new(3141, 3);
     /// assert_eq!(pi.to_string(), "3.141");
     /// ```
@@ -255,8 +394,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```rust
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let max = Decimal::try_new(i64::MAX, u32::MAX);
     /// assert!(max.is_err());
     /// ```
@@ -296,8 +435,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```rust
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let pi = Decimal::from_i128_with_scale(3141i128, 3);
     /// assert_eq!(pi.to_string(), "3.141");
     /// ```
@@ -315,8 +454,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```rust
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let max = Decimal::try_from_i128_with_scale(i128::MAX, u32::MAX);
     /// assert!(max.is_err());
     /// ```
@@ -363,8 +502,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let pi = Decimal::from_parts(1102470952, 185874565, 1703060790, false, 28);
     /// assert_eq!(pi.to_string(), "3.1415926535897932384626433832");
     /// ```
@@ -409,10 +548,13 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
-    /// let value = Decimal::from_scientific("9.7e-7").unwrap();
+    /// # use rust_decimal::Decimal;
+    /// #
+    /// # fn main() -> Result<(), rust_decimal::Error> {
+    /// let value = Decimal::from_scientific("9.7e-7")?;
     /// assert_eq!(value.to_string(), "0.00000097");
+    /// #     Ok(())
+    /// # }
     /// ```
     pub fn from_scientific(value: &str) -> Result<Decimal, Error> {
         const ERROR_MESSAGE: &str = "Failed to parse";
@@ -472,13 +614,65 @@ impl Decimal {
         Ok(ret)
     }
 
+    /// Converts a string slice in a given base to a decimal.
+    ///
+    /// The string is expected to be an optional + sign followed by digits.
+    /// Digits are a subset of these characters, depending on radix, and will return an error if outside
+    /// the expected range:
+    ///
+    /// * 0-9
+    /// * a-z
+    /// * A-Z
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use rust_decimal::prelude::*;
+    /// #
+    /// # fn main() -> Result<(), rust_decimal::Error> {
+    /// assert_eq!(Decimal::from_str_radix("A", 16)?.to_string(), "10");
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn from_str_radix(str: &str, radix: u32) -> Result<Self, crate::Error> {
+        if radix == 10 {
+            crate::str::parse_str_radix_10(str)
+        } else {
+            crate::str::parse_str_radix_n(str, radix)
+        }
+    }
+
+    /// Parses a string slice into a decimal. If the value underflows and cannot be represented with the
+    /// given scale then this will return an error.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use rust_decimal::prelude::*;
+    /// # use rust_decimal::Error;
+    /// #
+    /// # fn main() -> Result<(), rust_decimal::Error> {
+    /// assert_eq!(Decimal::from_str_exact("0.001")?.to_string(), "0.001");
+    /// assert_eq!(Decimal::from_str_exact("0.00000_00000_00000_00000_00000_001")?.to_string(), "0.0000000000000000000000000001");
+    /// assert_eq!(Decimal::from_str_exact("0.00000_00000_00000_00000_00000_0001"), Err(Error::Underflow));
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn from_str_exact(str: &str) -> Result<Self, crate::Error> {
+        crate::str::parse_str_radix_10_exact(str)
+    }
+
     /// Returns the scale of the decimal number, otherwise known as `e`.
     ///
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let num = Decimal::new(1234, 3);
     /// assert_eq!(num.scale(), 3u32);
     /// ```
@@ -493,9 +687,10 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::prelude::*;
+    /// # use rust_decimal::prelude::*;
+    /// use rust_decimal_macros::dec;
     ///
-    /// let num = Decimal::from_str("-1.2345678").unwrap();
+    /// let num = dec!(-1.2345678);
     /// assert_eq!(num.mantissa(), -12345678i128);
     /// assert_eq!(num.scale(), 7);
     /// ```
@@ -514,8 +709,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::prelude::*;
-    ///
+    /// # use rust_decimal::prelude::*;
+    /// #
     /// let num = Decimal::ZERO;
     /// assert!(num.is_zero());
     /// ```
@@ -533,8 +728,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let mut one = Decimal::ONE;
     /// one.set_sign(false);
     /// assert_eq!(one.to_string(), "-1");
@@ -553,8 +748,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let mut one = Decimal::ONE;
     /// one.set_sign_positive(false);
     /// assert_eq!(one.to_string(), "-1");
@@ -577,8 +772,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let mut one = Decimal::ONE;
     /// one.set_sign_negative(true);
     /// assert_eq!(one.to_string(), "-1");
@@ -597,11 +792,14 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
+    /// # fn main() -> Result<(), rust_decimal::Error> {
     /// let mut one = Decimal::ONE;
-    /// one.set_scale(5).unwrap();
+    /// one.set_scale(5)?;
     /// assert_eq!(one.to_string(), "0.00001");
+    /// #    Ok(())
+    /// # }
     /// ```
     pub fn set_scale(&mut self, scale: u32) -> Result<(), Error> {
         if scale > MAX_PRECISION_U32 {
@@ -627,17 +825,18 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::prelude::*;
+    /// # use rust_decimal::prelude::*;
+    /// use rust_decimal_macros::dec;
     ///
     /// // Rescaling to a higher scale preserves the value
-    /// let mut number = Decimal::from_str("1.123").unwrap();
+    /// let mut number = dec!(1.123);
     /// assert_eq!(number.scale(), 3);
     /// number.rescale(6);
     /// assert_eq!(number.to_string(), "1.123000");
     /// assert_eq!(number.scale(), 6);
     ///
     /// // Rescaling to a lower scale forces the number to be rounded
-    /// let mut number = Decimal::from_str("1.45").unwrap();
+    /// let mut number = dec!(1.45);
     /// assert_eq!(number.scale(), 2);
     /// number.rescale(1);
     /// assert_eq!(number.to_string(), "1.5");
@@ -645,7 +844,7 @@ impl Decimal {
     ///
     /// // This function never fails. Consequently, if a scale is provided that is unable to be
     /// // represented using the given mantissa, then the maximum possible scale is used.
-    /// let mut number = Decimal::from_str("11.76470588235294").unwrap();
+    /// let mut number = dec!(11.76470588235294);
     /// assert_eq!(number.scale(), 14);
     /// number.rescale(28);
     /// // A scale of 28 cannot be represented given this mantissa, however it was able to represent
@@ -748,12 +947,29 @@ impl Decimal {
     }
 
     /// Returns `true` if the sign bit of the decimal is negative.
+    ///
+    /// # Example
+    /// ```
+    /// # use rust_decimal::prelude::*;
+    /// #
+    /// assert_eq!(true, Decimal::new(-1, 0).is_sign_negative());
+    /// assert_eq!(false, Decimal::new(1, 0).is_sign_negative());
+    /// ```
     #[inline(always)]
+    #[must_use]
     pub const fn is_sign_negative(&self) -> bool {
         self.flags & SIGN_MASK > 0
     }
 
     /// Returns `true` if the sign bit of the decimal is positive.
+    ///
+    /// # Example
+    /// ```
+    /// # use rust_decimal::prelude::*;
+    /// #
+    /// assert_eq!(false, Decimal::new(-1, 0).is_sign_positive());
+    /// assert_eq!(true, Decimal::new(1, 0).is_sign_positive());
+    /// ```
     #[inline(always)]
     #[must_use]
     pub const fn is_sign_positive(&self) -> bool {
@@ -780,8 +996,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let pi = Decimal::new(3141, 3);
     /// let trunc = Decimal::new(3, 0);
     /// // note that it returns a decimal
@@ -819,8 +1035,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let pi = Decimal::new(3141, 3);
     /// let fract = Decimal::new(141, 3);
     /// // note that it returns a decimal
@@ -838,8 +1054,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let num = Decimal::new(-3141, 3);
     /// assert_eq!(num.abs().to_string(), "3.141");
     /// ```
@@ -855,8 +1071,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let num = Decimal::new(3641, 3);
     /// assert_eq!(num.floor().to_string(), "3");
     /// ```
@@ -882,8 +1098,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let num = Decimal::new(3141, 3);
     /// assert_eq!(num.ceil().to_string(), "4");
     /// let num = Decimal::new(3, 0);
@@ -908,8 +1124,8 @@ impl Decimal {
     /// Returns the maximum of the two numbers.
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let x = Decimal::new(1, 0);
     /// let y = Decimal::new(2, 0);
     /// assert_eq!(y, x.max(y));
@@ -926,8 +1142,8 @@ impl Decimal {
     /// Returns the minimum of the two numbers.
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// let x = Decimal::new(1, 0);
     /// let y = Decimal::new(2, 0);
     /// assert_eq!(x, x.min(y));
@@ -946,10 +1162,12 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::prelude::*;
-    ///
-    /// let number = Decimal::from_str("3.100").unwrap();
+    /// # use rust_decimal::prelude::*;
+    /// # fn main() -> Result<(), rust_decimal::Error> {
+    /// let number = Decimal::from_str("3.100")?;
     /// assert_eq!(number.normalize().to_string(), "3.1");
+    /// # Ok(())
+    /// # }
     /// ```
     #[must_use]
     pub fn normalize(&self) -> Decimal {
@@ -963,12 +1181,14 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::prelude::*;
-    ///
-    /// let mut number = Decimal::from_str("3.100").unwrap();
+    /// # use rust_decimal::prelude::*;
+    /// # fn main() -> Result<(), rust_decimal::Error> {
+    /// let mut number = Decimal::from_str("3.100")?;
     /// assert_eq!(number.to_string(), "3.100");
     /// number.normalize_assign();
     /// assert_eq!(number.to_string(), "3.1");
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn normalize_assign(&mut self) {
         if self.is_zero() {
@@ -1002,8 +1222,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    ///
+    /// # use rust_decimal::Decimal;
+    /// #
     /// // Demonstrating bankers rounding...
     /// let number_down = Decimal::new(65, 1);
     /// let number_up   = Decimal::new(75, 1);
@@ -1026,10 +1246,10 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::{Decimal, RoundingStrategy};
-    /// use core::str::FromStr;
-    ///
-    /// let tax = Decimal::from_str("3.4395").unwrap();
+    /// # use rust_decimal::{Decimal, RoundingStrategy};
+    /// # use rust_decimal_macros::dec;
+    /// #
+    /// let tax = dec!(3.4395);
     /// assert_eq!(tax.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero).to_string(), "3.44");
     /// ```
     #[must_use]
@@ -1179,10 +1399,10 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    /// use core::str::FromStr;
-    ///
-    /// let pi = Decimal::from_str("3.1415926535897932384626433832").unwrap();
+    /// # use rust_decimal::Decimal;
+    /// # use rust_decimal_macros::dec;
+    /// #
+    /// let pi = dec!(3.1415926535897932384626433832);
     /// assert_eq!(pi.round_dp(2).to_string(), "3.14");
     /// ```
     #[must_use]
@@ -1209,22 +1429,22 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    /// use core::str::FromStr;
+    /// # use rust_decimal::Decimal;
+    /// use rust_decimal_macros::dec;
     ///
-    /// let value = Decimal::from_str("305.459").unwrap();
-    /// assert_eq!(value.round_sf(0), Some(Decimal::from_str("0").unwrap()));
-    /// assert_eq!(value.round_sf(1), Some(Decimal::from_str("300").unwrap()));
-    /// assert_eq!(value.round_sf(2), Some(Decimal::from_str("310").unwrap()));
-    /// assert_eq!(value.round_sf(3), Some(Decimal::from_str("305").unwrap()));
-    /// assert_eq!(value.round_sf(4), Some(Decimal::from_str("305.5").unwrap()));
-    /// assert_eq!(value.round_sf(5), Some(Decimal::from_str("305.46").unwrap()));
-    /// assert_eq!(value.round_sf(6), Some(Decimal::from_str("305.459").unwrap()));
-    /// assert_eq!(value.round_sf(7), Some(Decimal::from_str("305.4590").unwrap()));
+    /// let value = dec!(305.459);
+    /// assert_eq!(value.round_sf(0), Some(dec!(0)));
+    /// assert_eq!(value.round_sf(1), Some(dec!(300)));
+    /// assert_eq!(value.round_sf(2), Some(dec!(310)));
+    /// assert_eq!(value.round_sf(3), Some(dec!(305)));
+    /// assert_eq!(value.round_sf(4), Some(dec!(305.5)));
+    /// assert_eq!(value.round_sf(5), Some(dec!(305.46)));
+    /// assert_eq!(value.round_sf(6), Some(dec!(305.459)));
+    /// assert_eq!(value.round_sf(7), Some(dec!(305.4590)));
     /// assert_eq!(Decimal::MAX.round_sf(1), None);
     ///
-    /// let value = Decimal::from_str("0.012301").unwrap();
-    /// assert_eq!(value.round_sf(3), Some(Decimal::from_str("0.0123").unwrap()));
+    /// let value = dec!(0.012301);
+    /// assert_eq!(value.round_sf(3), Some(dec!(0.0123)));
     /// ```
     #[must_use]
     pub fn round_sf(&self, digits: u32) -> Option<Decimal> {
@@ -1251,22 +1471,22 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::{Decimal, RoundingStrategy};
-    /// use core::str::FromStr;
+    /// # use rust_decimal::{Decimal, RoundingStrategy};
+    /// use rust_decimal_macros::dec;
     ///
-    /// let value = Decimal::from_str("305.459").unwrap();
-    /// assert_eq!(value.round_sf_with_strategy(0, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("0").unwrap());
-    /// assert_eq!(value.round_sf_with_strategy(1, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("300").unwrap());
-    /// assert_eq!(value.round_sf_with_strategy(2, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("300").unwrap());
-    /// assert_eq!(value.round_sf_with_strategy(3, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("305").unwrap());
-    /// assert_eq!(value.round_sf_with_strategy(4, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("305.4").unwrap());
-    /// assert_eq!(value.round_sf_with_strategy(5, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("305.45").unwrap());
-    /// assert_eq!(value.round_sf_with_strategy(6, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("305.459").unwrap());
-    /// assert_eq!(value.round_sf_with_strategy(7, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("305.4590").unwrap());
-    /// assert_eq!(Decimal::MAX.round_sf_with_strategy(1, RoundingStrategy::ToZero).unwrap(), Decimal::from_str("70000000000000000000000000000").unwrap());
+    /// let value = dec!(305.459);
+    /// assert_eq!(value.round_sf_with_strategy(0, RoundingStrategy::ToZero), Some(dec!(0)));
+    /// assert_eq!(value.round_sf_with_strategy(1, RoundingStrategy::ToZero), Some(dec!(300)));
+    /// assert_eq!(value.round_sf_with_strategy(2, RoundingStrategy::ToZero), Some(dec!(300)));
+    /// assert_eq!(value.round_sf_with_strategy(3, RoundingStrategy::ToZero), Some(dec!(305)));
+    /// assert_eq!(value.round_sf_with_strategy(4, RoundingStrategy::ToZero), Some(dec!(305.4)));
+    /// assert_eq!(value.round_sf_with_strategy(5, RoundingStrategy::ToZero), Some(dec!(305.45)));
+    /// assert_eq!(value.round_sf_with_strategy(6, RoundingStrategy::ToZero), Some(dec!(305.459)));
+    /// assert_eq!(value.round_sf_with_strategy(7, RoundingStrategy::ToZero), Some(dec!(305.4590)));
+    /// assert_eq!(Decimal::MAX.round_sf_with_strategy(1, RoundingStrategy::ToZero), Some(dec!(70000000000000000000000000000)));
     ///
-    /// let value = Decimal::from_str("0.012301").unwrap();
-    /// assert_eq!(value.round_sf_with_strategy(3, RoundingStrategy::AwayFromZero), Some(Decimal::from_str("0.0124").unwrap()));
+    /// let value = dec!(0.012301);
+    /// assert_eq!(value.round_sf_with_strategy(3, RoundingStrategy::AwayFromZero), Some(dec!(0.0124)));
     /// ```
     #[must_use]
     pub fn round_sf_with_strategy(&self, digits: u32, strategy: RoundingStrategy) -> Option<Decimal> {
@@ -1363,15 +1583,16 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::Decimal;
-    /// use core::str::FromStr;
+    /// # use rust_decimal::Decimal;
+    /// use rust_decimal_macros::dec;
     ///
-    /// let pi = Decimal::from_str("3.1415926535897932384626433832").unwrap();
+    /// let pi = dec!(3.1415926535897932384626433832);
     /// assert_eq!(format!("{:?}", pi), "3.1415926535897932384626433832");
     /// assert_eq!(format!("{:?}", pi.unpack()), "UnpackedDecimal { \
     ///     negative: false, scale: 28, hi: 1703060790, mid: 185874565, lo: 1102470952 \
     /// }");
     /// ```
+    #[must_use]
     pub const fn unpack(&self) -> UnpackedDecimal {
         UnpackedDecimal {
             negative: self.is_sign_negative(),
@@ -1421,8 +1642,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::prelude::*;
-    ///
+    /// # use rust_decimal::prelude::*;
+    /// #
     /// // Usually floats are parsed leveraging float guarantees. i.e. 0.1_f32 => 0.1
     /// assert_eq!("0.1", Decimal::from_f32(0.1_f32).unwrap().to_string());
     ///
@@ -1442,8 +1663,8 @@ impl Decimal {
     /// # Example
     ///
     /// ```
-    /// use rust_decimal::prelude::*;
-    ///
+    /// # use rust_decimal::prelude::*;
+    /// #
     /// // Usually floats are parsed leveraging float guarantees. i.e. 0.1_f64 => 0.1
     /// assert_eq!("0.1", Decimal::from_f64(0.1_f64).unwrap().to_string());
     ///
@@ -1453,17 +1674,12 @@ impl Decimal {
     pub fn from_f64_retain(n: f64) -> Option<Self> {
         from_f64(n, false)
     }
-
-    pub fn from_str_radix(str: &str, radix: u32) -> Result<Self, crate::Error> {
-        if radix == 10 {
-            crate::str::parse_str_radix_10(str)
-        } else {
-            crate::str::parse_str_radix_n(str, radix)
-        }
-    }
 }
 
 impl Default for Decimal {
+    /// Returns the default value for a `Decimal` (equivalent to `Decimal::ZERO`). [Read more]
+    ///
+    /// [Read more]: core::default::Default#tymethod.default
     #[inline]
     fn default() -> Self {
         ZERO
@@ -1540,8 +1756,84 @@ const fn flags(neg: bool, scale: u32) -> u32 {
     (scale << SCALE_SHIFT) | ((neg as u32) << SIGN_SHIFT)
 }
 
+macro_rules! integer_docs {
+    ( true ) => {
+        " by truncating and returning the integer component"
+    };
+    ( false ) => {
+        ""
+    };
+}
+
+// #[doc] attributes are formatted poorly with rustfmt so skip for now.
+// See https://github.com/rust-lang/rustfmt/issues/5062 for more information.
+#[rustfmt::skip]
+macro_rules! impl_try_from_decimal {
+    ($TInto:ty, $conversion_fn:path, $additional_docs:expr) => {
+        #[doc = concat!(
+            "Try to convert a `Decimal` to `",
+            stringify!($TInto),
+            "`",
+            $additional_docs,
+            ".\n\nCan fail if the `Decimal` is out of range for `",
+            stringify!($TInto),
+            "`.",
+        )]
+        impl core::convert::TryFrom<Decimal> for $TInto {
+            type Error = crate::Error;
+
+            #[inline]
+            fn try_from(t: Decimal) -> Result<Self, Error> {
+                $conversion_fn(&t).ok_or_else(|| Error::ConversionTo(stringify!($TInto).into()))
+            }
+        }
+    };
+}
+
+impl_try_from_decimal!(f32, Decimal::to_f32, integer_docs!(false));
+impl_try_from_decimal!(f64, Decimal::to_f64, integer_docs!(false));
+impl_try_from_decimal!(isize, Decimal::to_isize, integer_docs!(true));
+impl_try_from_decimal!(i8, Decimal::to_i8, integer_docs!(true));
+impl_try_from_decimal!(i16, Decimal::to_i16, integer_docs!(true));
+impl_try_from_decimal!(i32, Decimal::to_i32, integer_docs!(true));
+impl_try_from_decimal!(i64, Decimal::to_i64, integer_docs!(true));
+impl_try_from_decimal!(i128, Decimal::to_i128, integer_docs!(true));
+impl_try_from_decimal!(usize, Decimal::to_usize, integer_docs!(true));
+impl_try_from_decimal!(u8, Decimal::to_u8, integer_docs!(true));
+impl_try_from_decimal!(u16, Decimal::to_u16, integer_docs!(true));
+impl_try_from_decimal!(u32, Decimal::to_u32, integer_docs!(true));
+impl_try_from_decimal!(u64, Decimal::to_u64, integer_docs!(true));
+impl_try_from_decimal!(u128, Decimal::to_u128, integer_docs!(true));
+
+// #[doc] attributes are formatted poorly with rustfmt so skip for now.
+// See https://github.com/rust-lang/rustfmt/issues/5062 for more information.
+#[rustfmt::skip]
+macro_rules! impl_try_from_primitive {
+    ($TFrom:ty, $conversion_fn:path) => {
+        #[doc = concat!(
+            "Try to convert a `",
+            stringify!($TFrom),
+            "` into a `Decimal`.\n\nCan fail if the value is out of range for `Decimal`."
+        )]
+        impl core::convert::TryFrom<$TFrom> for Decimal {
+            type Error = crate::Error;
+
+            #[inline]
+            fn try_from(t: $TFrom) -> Result<Self, Error> {
+                $conversion_fn(t).ok_or_else(|| Error::ConversionTo("Decimal".into()))
+            }
+        }
+    };
+}
+
+impl_try_from_primitive!(f32, Self::from_f32);
+impl_try_from_primitive!(f64, Self::from_f64);
+
 macro_rules! impl_from {
     ($T:ty, $from_ty:path) => {
+        ///
+        /// Conversion to `Decimal`.
+        ///
         impl core::convert::From<$T> for Decimal {
             #[inline]
             fn from(t: $T) -> Self {
@@ -1550,6 +1842,7 @@ macro_rules! impl_from {
         }
     };
 }
+
 impl_from!(isize, FromPrimitive::from_isize);
 impl_from!(i8, FromPrimitive::from_i8);
 impl_from!(i16, FromPrimitive::from_i16);
@@ -1972,15 +2265,26 @@ fn base2_to_decimal(
 impl ToPrimitive for Decimal {
     fn to_i64(&self) -> Option<i64> {
         let d = self.trunc();
-        // Quick overflow check
-        if d.hi != 0 || (d.mid & 0x8000_0000) > 0 {
+        // If it is in the hi bit then it is a clear overflow.
+        if d.hi != 0 {
             // Overflow
+            return None;
+        }
+        let negative = self.is_sign_negative();
+
+        // A bit more convoluted in terms of checking when it comes to the hi bit due to twos-complement
+        if d.mid & 0x8000_0000 > 0 {
+            if negative && d.mid == 0x8000_0000 && d.lo == 0 {
+                // We do this because below we try to convert the i64 to a positive first - of which
+                // doesn't fit into an i64.
+                return Some(i64::MIN);
+            }
             return None;
         }
 
         let raw: i64 = (i64::from(d.mid) << 32) | i64::from(d.lo);
-        if self.is_sign_negative() {
-            Some(-raw)
+        if negative {
+            Some(raw.neg())
         } else {
             Some(raw)
         }
@@ -2041,38 +2345,6 @@ impl ToPrimitive for Decimal {
             let round_to = 10f64.powi(self.scale() as i32);
             Some((value * round_to).round() / round_to)
         }
-    }
-}
-
-impl core::convert::TryFrom<f32> for Decimal {
-    type Error = crate::Error;
-
-    fn try_from(value: f32) -> Result<Self, Error> {
-        Self::from_f32(value).ok_or_else(|| Error::from("Failed to convert to Decimal"))
-    }
-}
-
-impl core::convert::TryFrom<f64> for Decimal {
-    type Error = crate::Error;
-
-    fn try_from(value: f64) -> Result<Self, Error> {
-        Self::from_f64(value).ok_or_else(|| Error::from("Failed to convert to Decimal"))
-    }
-}
-
-impl core::convert::TryFrom<Decimal> for f32 {
-    type Error = crate::Error;
-
-    fn try_from(value: Decimal) -> Result<Self, Self::Error> {
-        Decimal::to_f32(&value).ok_or_else(|| Error::from("Failed to convert to f32"))
-    }
-}
-
-impl core::convert::TryFrom<Decimal> for f64 {
-    type Error = crate::Error;
-
-    fn try_from(value: Decimal) -> Result<Self, Self::Error> {
-        Decimal::to_f64(&value).ok_or_else(|| Error::from("Failed to convert to f64"))
     }
 }
 

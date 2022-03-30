@@ -5,7 +5,7 @@ use core::{
     convert::{TryFrom, TryInto},
     str::FromStr,
 };
-use num_traits::{Signed, ToPrimitive};
+use num_traits::{Inv, Signed, ToPrimitive};
 use rust_decimal::{Decimal, Error, RoundingStrategy};
 
 #[test]
@@ -128,6 +128,30 @@ fn it_can_serialize_deserialize() {
         let a = Decimal::from_str(test).unwrap();
         let bytes = a.serialize();
         let b = Decimal::deserialize(bytes);
+        assert_eq!(test.to_string(), b.to_string());
+    }
+}
+
+#[test]
+#[cfg(feature = "borsh")]
+fn it_can_serialize_deserialize_borsh() {
+    let tests = [
+        "12.3456789",
+        "5233.9008808150288439427720175",
+        "-5233.9008808150288439427720175",
+    ];
+    for test in &tests {
+        let a = Decimal::from_str(test).unwrap();
+        let mut bytes: Vec<u8> = Vec::new();
+        borsh::BorshSerialize::serialize(&a, &mut bytes).unwrap();
+        let b: Decimal = borsh::BorshDeserialize::deserialize(&mut bytes.as_slice()).unwrap();
+        assert_eq!(test.to_string(), b.to_string());
+        let bytes = borsh::try_to_vec_with_schema(&a);
+        assert!(bytes.is_ok(), "try_to_vec_with_schema.is_ok()");
+        let bytes = bytes.unwrap();
+        let result = borsh::try_from_slice_with_schema(&bytes);
+        assert!(result.is_ok(), "try_from_slice_with_schema.is_ok()");
+        let b: Decimal = result.unwrap();
         assert_eq!(test.to_string(), b.to_string());
     }
 }
@@ -2616,15 +2640,26 @@ fn it_converts_to_f64_try() {
 
 #[test]
 fn it_converts_to_i64() {
-    assert_eq!(5i64, Decimal::from_str("5").unwrap().to_i64().unwrap());
-    assert_eq!(-5i64, Decimal::from_str("-5").unwrap().to_i64().unwrap());
-    assert_eq!(5i64, Decimal::from_str("5.12345").unwrap().to_i64().unwrap());
-    assert_eq!(-5i64, Decimal::from_str("-5.12345").unwrap().to_i64().unwrap());
-    assert_eq!(
-        0x7FFF_FFFF_FFFF_FFFF,
-        Decimal::from_str("9223372036854775807").unwrap().to_i64().unwrap()
-    );
-    assert_eq!(None, Decimal::from_str("92233720368547758089").unwrap().to_i64());
+    let tests = [
+        ("5", Some(5_i64)),
+        ("-5", Some(-5_i64)),
+        ("5.12345", Some(5_i64)),
+        ("-5.12345", Some(-5_i64)),
+        ("-9223372036854775808", Some(-9223372036854775808_i64)),
+        ("-9223372036854775808", Some(i64::MIN)),
+        ("9223372036854775807", Some(9223372036854775807_i64)),
+        ("9223372036854775807", Some(i64::MAX)),
+        ("-9223372036854775809", None), // i64::MIN - 1
+        ("9223372036854775808", None),  // i64::MAX + 1
+        // Clear overflows in hi bit
+        ("-92233720368547758089", None),
+        ("92233720368547758088", None),
+    ];
+    for (input, expected) in tests {
+        let input = Decimal::from_str(input).unwrap();
+        let actual = input.to_i64();
+        assert_eq!(expected, actual, "Input: {}", input);
+    }
 }
 
 #[test]
@@ -2848,6 +2883,13 @@ fn it_converts_from_f64_retaining_bits() {
 }
 
 #[test]
+fn it_converts_to_integers() {
+    assert_eq!(i64::try_from(Decimal::ONE), Ok(1));
+    assert_eq!(i64::try_from(Decimal::MAX), Err(Error::ConversionTo("i64".to_string())));
+    assert_eq!(u128::try_from(Decimal::ONE_HUNDRED), Ok(100));
+}
+
+#[test]
 fn it_handles_simple_underflow() {
     // Issue #71
     let rate = Decimal::new(19, 2); // 0.19
@@ -2898,6 +2940,41 @@ fn it_can_parse_highly_significant_numbers() {
     ];
     for &(value, expected) in tests {
         assert_eq!(expected, Decimal::from_str(value).unwrap().to_string());
+    }
+}
+
+#[test]
+fn it_can_parse_exact_highly_significant_numbers() {
+    use rust_decimal::Error;
+
+    let tests = &[
+        (
+            "11.111111111111111111111111111",
+            Ok("11.111111111111111111111111111".to_string()),
+        ),
+        ("11.11111111111111111111111111111", Err(Error::Underflow)),
+        ("11.1111111111111111111111111115", Err(Error::Underflow)),
+        ("115.111111111111111111111111111", Err(Error::Underflow)),
+        ("1115.11111111111111111111111111", Err(Error::Underflow)),
+        ("11.1111111111111111111111111195", Err(Error::Underflow)),
+        ("99.9999999999999999999999999995", Err(Error::Underflow)),
+        ("-11.1111111111111111111111111195", Err(Error::Underflow)),
+        ("-99.9999999999999999999999999995", Err(Error::Underflow)),
+        (
+            "3.1415926535897932384626433832",
+            Ok("3.1415926535897932384626433832".to_string()),
+        ),
+        ("8808257419827262908.5944405087133154018", Err(Error::Underflow)),
+        ("8097370036018690744.2590371109596744091", Err(Error::Underflow)),
+        ("8097370036018690744.2590371149596744091", Err(Error::Underflow)),
+        ("8097370036018690744.2590371159596744091", Err(Error::Underflow)),
+        ("1.234567890123456789012345678949999", Err(Error::Underflow)),
+        (".00000000000000000000000000001", Err(Error::Underflow)),
+        (".10000000000000000000000000000", Err(Error::Underflow)),
+    ];
+    for &(value, ref expected) in tests.into_iter() {
+        let actual = Decimal::from_str_exact(value).map(|d| d.to_string());
+        assert_eq!(*expected, actual);
     }
 }
 
@@ -3312,6 +3389,11 @@ fn test_constants() {
     assert_eq!("100", Decimal::ONE_HUNDRED.to_string());
     assert_eq!("1000", Decimal::ONE_THOUSAND.to_string());
     assert_eq!("2", Decimal::TWO.to_string());
+}
+
+#[test]
+fn test_inv() {
+    assert_eq!("0.01", Decimal::ONE_HUNDRED.inv().to_string());
 }
 
 // Mathematical features
