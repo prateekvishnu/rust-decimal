@@ -4464,4 +4464,10 @@ mod issues {
         assert!(c.is_some());
         assert_eq!("-429391.87200000000002327170816", c.unwrap().to_string())
     }
+
+    #[test]
+    fn issue_508_overflow_during_round() {
+        let a = Decimal::new(i64::MIN, 9).round_dp(3);
+        assert_eq!("-9223372036.855", a.to_string());
+    }
 }
