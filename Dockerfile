@@ -12,6 +12,8 @@ RUN ${HOME}/.cargo/bin/cargo install -f cargo-fuzz
 ADD . /rust-decimal
 WORKDIR /rust-decimal
 
+RUN mkdir -p /home/mayhem/tests
+
 RUN cd fuzz && ${HOME}/.cargo/bin/cargo fuzz build
 
 # Package Stage

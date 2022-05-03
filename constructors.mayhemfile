@@ -7,6 +7,10 @@ target: constructors
 # Base image to run the binary in.
 # image: ghcr.io/prateekvishnu/rust-decimal:latest
 
+tests:
+  - file:///home/mayhem/tests
+
+  
 # List of commands used to test the target
 cmds:
 
