@@ -8,14 +8,14 @@ authors = ["Paul Mason <paul@form1.co.nz>"]
 categories = ["science","mathematics","data-structures"]
 description = "Decimal number implementation written in pure Rust suitable for financial and fixed-precision calculations."
 documentation = "https://docs.rs/rust_decimal/"
-edition = "2018"
+edition = "2021"
 exclude = [ "tests/generated/*" ]
 keywords = ["decimal","financial","fixed","precision","number"]
 license = "MIT"
 name = "rust_decimal"
 readme = "./README.md"
 repository = "https://github.com/paupino/rust-decimal"
-version = "1.23.1"
+version = "1.25.0"
 build = "build.rs"
 
 [package.metadata.docs.rs]
@@ -25,27 +25,31 @@ all-features = true
 arbitrary = { default-features = false, optional = true, version = "1.0" }
 arrayvec = { default-features = false, version = "0.7" }
 borsh = { default-features = false, optional = true, version = "0.9.3" }
+bytecheck = { default-features= false, optional = true, version = "0.6" }
 byteorder = { default-features = false, optional = true, version = "1.3" }
 bytes = { default-features = false, optional = true, version = "1.0" }
 diesel = { default-features = false, optional = true, version = "1.4" }
 num-traits = { default-features = false, features = ["i128"], version = "0.2" }
 postgres = { default-features = false, optional = true, version = "0.19" }
+rand = { default-features = false, optional = true, version = "0.8" }
+rkyv = { default-features = false, features = ["size_32", "std"], optional = true, version = "0.7" }
 rocket = { default-features = false, optional = true, version = "0.5.0-rc.1" }
 serde = { default-features = false, optional = true, version = "1.0" }
 serde_json = { default-features = false, optional = true, version = "1.0" }
 tokio-postgres = { default-features = false, optional = true, version = "0.7" }
 
 [dev-dependencies]
-bincode = "1.3"
-bytes = "1.0"
+bincode = { default-features = false, version = "1.0" }
+bytes = { default-features = false, version = "1.0" }
 criterion = { default-features = false, version = "0.3" }
 csv = "1"
-futures = "0.3"
+futures = { default-features = false, version = "0.3" }
+rand = { default-features = false, features = ["getrandom"], version = "0.8" }
 rust_decimal_macros = { path = "macros" } # This should be ok since it's just for tests
 serde = { default-features = false, features = ["derive"], version = "1.0" }
 serde_json = "1.0"
-tokio = { features = ["rt-multi-thread", "test-util", "macros"], version = "1.0" }
-version-sync = "0.9"
+tokio = { default-features = false, features = ["macros", "rt-multi-thread", "test-util"], version = "1.0" }
+version-sync = { default-features = false, features = ["html_root_url_updated", "markdown_deps_updated"], version = "0.9" }
 
 [features]
 c-repr = [] # Force Decimal to be repr(C)
@@ -57,13 +61,14 @@ default = ["serde", "std"]
 legacy-ops = []
 maths = []
 maths-nopanic = ["maths"]
+rkyv-safe = ["bytecheck", "rkyv", "rkyv/validation"]
 rocket-traits = ["rocket"]
 rust-fuzz = ["arbitrary"]
 serde-arbitrary-precision = ["serde-with-arbitrary-precision"]
 serde-bincode = ["serde-str"] # Backwards compatability
 serde-float = ["serde-with-float"]
 serde-str = ["serde-with-str"]
-serde-with-arbitrary-precision = ["serde", "serde_json/arbitrary_precision"]
+serde-with-arbitrary-precision = ["serde", "serde_json/arbitrary_precision", "serde_json/std"]
 serde-with-float = ["serde"]
 serde-with-str = ["serde"]
 std = []
