@@ -7,7 +7,7 @@ target: constructors
 # Base image to run the binary in.
 # image: ghcr.io/prateekvishnu/rust-decimal:latest
 
-tests:
+testsuite:
   - file:///home/mayhem/tests
 
   
