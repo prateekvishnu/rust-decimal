@@ -4,8 +4,9 @@ project: rust-decimal
 # Target name (should be unique within the project)
 target: arithmetic
 
-# Base image to run the binary in.
-# image: ghcr.io/prateekvishnu/rust-decimal:latest
+testsuite:
+  - file:///home/mayhem/tests
+
 
 # List of commands used to test the target
 cmds:
