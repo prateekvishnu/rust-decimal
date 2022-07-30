@@ -4,9 +4,6 @@ project: rust-decimal
 # Target name (should be unique within the project)
 target: constructors
 
-# Base image to run the binary in.
-# image: ghcr.io/prateekvishnu/rust-decimal:latest
-
 testsuite:
   - file:///home/mayhem/tests
 
